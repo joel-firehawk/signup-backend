@@ -1,8 +1,12 @@
 import express from "express";
 import bcrypt, { hash } from "bcrypt";
+import cors from "cors";
+
 
 const app = express();
 app.use(express.json());
+app.use(cors());
+
 const users = [];
 
 app.get('/users', (req, res) => {
@@ -22,16 +26,24 @@ app.post('/users', async (req, res) => {
 });
 
 app.post('/users/login', async (req, res) => {
-    const user = users.find(user => user.name === req.body.name);
-    
+    console.log(req.body);
+
+    const user = users.find(user => {
+        console.log("Checking user:", user.name, "against", req.body.name);
+        return user.name === req.body.name;
+    });
+
     if (user == null){
+        console.log('user not found');
         return res.status(400).send("Cannot find user");
     }
 
     try {
         if (await bcrypt.compare(req.body.password, user.password)) {
-            res.status(200).send("Success");
+            console.log('success');
+            res.status(200).send({ message: "Success" });
         } else {
+            console.log('failed');
             res.status(401).send("Password Incorrect");
         }
     } catch {
