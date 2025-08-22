@@ -135,6 +135,7 @@ app.post('/users/login', async (req, res) => {
 app.get('/users/:id', async (req, res) => {
     try {
         const id = req.params.id;
+        console.log(id);
 
         const userRef = db.collection('users').doc(id);
         const userDoc = await userRef.get();
