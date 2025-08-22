@@ -56,6 +56,17 @@ app.post('/users', async (req, res) => {
         const hashedPassword = await bcrypt.hash(password, 10);
         const user = { email, password: hashedPassword };
 
+        const existingUser = await db.collection('users')
+            .where('email', '==', email)
+            .get();
+
+        if (!existingUser.empty) {
+            return res.status(400).send({
+                success: false,
+                message: "Email already exists"
+            });
+        }
+
         await db.collection('users').add(user);
 
         res.status(201).send({
@@ -96,13 +107,15 @@ app.post('/users/login', async (req, res) => {
 
         const userDoc = userSnapshot.docs[0];
         const user = userDoc.data();
+        const userId = userDoc.id;
 
         const match = await bcrypt.compare(password, user.password);
 
         if (match) {
             return res.status(200).send({
                 success: true,
-                message: "Login successful"
+                message: "Login successful",
+                id: userId
             });
         } else {
             return res.status(401).send({
@@ -118,6 +131,37 @@ app.post('/users/login', async (req, res) => {
         });
     }
 });
+
+app.get('/users/:id', async (req, res) => {
+    try {
+        const id = req.params.id;
+
+        const userRef = db.collection('users').doc(id);
+        const userDoc = await userRef.get();
+
+        if (!userDoc.exists) {
+            return res.status(404).send({
+                success: false,
+                message: 'No user found'
+            });
+        }
+
+        const { password, ...userData } = userDoc.data();
+
+        return res.status(200).send({
+            success: true,
+            message: 'User returned',
+            data: { id: userDoc.id, ...userData }
+        });
+
+    } catch (error) {
+        return res.status(500).send({
+            success: false,
+            message: error?.message
+        });
+    }
+});
+
 
 // Start server
 app.listen(3000, () => {
